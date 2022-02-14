@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: mysql-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: mysql.alerts
+    rules:
+    - alert: mysql-up
+      expr: |
+        mysql_up !=1 OR absent(mysql_up)==1
+      for: 30s
+      labels:
+        severity: critical
+      annotations:
+        summary: "mysql不可用或者采集器不可用"
+    - alert: MySQLReplicationNotRunning
+      expr: mysql_slave_status_slave_io_running == 0 or mysql_slave_status_slave_sql_running == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "mysql从节点(IO or SQL)进程持续2m down"
+        description: "mysql主节点IP={{ $labels.master_host }} mysql主节点UUID={{ $labels.master_uuid }}\n"
+    - alert: MySQLUsedConnection
+      expr: ceil(mysql_global_status_threads_connected{} / mysql_global_variables_max_connections{} * 100) > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "mysql连接数使用率持续5m超出80%"
+        description: "mysql连接数使用率={{ $value }}%\n"
+    - alert: MysqlRestarted
+      expr: mysql_global_status_uptime < 60
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "MySQL重启"
+        description: "MySQL被重启,当前运行时间={{ $value }}s"

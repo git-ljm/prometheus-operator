@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: prometheus-webhook-dingtalk
+  name: prometheus-webhook-dingtalk
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-webhook-dingtalk
+  template:
+    metadata:
+      labels:
+        app: prometheus-webhook-dingtalk
+    spec:
+      containers:
+        - args:
+            - --ding.profile=ops=https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            - --log.level=debug
+            - --web.listen-address=127.0.0.1:8060
+            - --template.file=/config/default.tmpl
+          name: prometheus-webhook-dingtalk
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/prometheus-webhook-dingtalk:1.4.0
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi
+          volumeMounts:
+            - mountPath: /config/
+              name: template-volume
+        - args:
+            - --logtostderr
+            - --secure-listen-address=$(IP):8060
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            - --upstream=http://127.0.0.1:8060/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/kube-rbac-proxy:v0.4.1
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 8060
+              hostPort: 8060
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: prometheus-webhook-dingtalk
+      tolerations:
+        - operator: Exists
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: prometheus-webhook-dingtalk-template
+          name: template-volume

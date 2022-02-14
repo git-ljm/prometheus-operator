@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: statping-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: statping.alerts
+    rules:
+    - alert: ServiceDown
+      expr: statping_service_online == 0
+      labels:
+        severity: critical
+      annotations:
+        summary: "服务健康检查不通过，请留意"
+        description: 服务={{ $labels.exported_service }}
+

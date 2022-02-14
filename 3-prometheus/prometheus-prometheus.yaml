@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  labels:
+    prometheus: k8s
+  name: k8s
+  namespace: monitoring
+spec:
+  alerting:
+    alertmanagers:
+      - name: alertmanager-main
+        namespace: monitoring
+        port: web
+  baseImage: registry.cn-hangzhou.aliyuncs.com/clab-docker/prometheus
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  replicas: 1
+  retention: 240h
+  resources:
+    requests:
+      memory: 400Mi
+  ruleSelector:
+    matchLabels:
+      prometheus: k8s
+      role: alert-rules
+  securityContext:
+    fsGroup: 0
+    runAsNonRoot: false
+    runAsUser: 0
+  serviceAccountName: prometheus-k8s
+  serviceMonitorNamespaceSelector: {}
+  serviceMonitorSelector: {}
+  ### comment below if you want to use temp storage ###
+  storage:
+    volumeClaimTemplate:
+      selector: {}
+      spec:
+        # 阿里云高效云盘
+        # storageClassName: alicloud-disk-topology-efficiency
+        storageClassName: prometheus-local-storage
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+  ### comment above if you want to use temp storage ###
+  version: v2.11.1
+  

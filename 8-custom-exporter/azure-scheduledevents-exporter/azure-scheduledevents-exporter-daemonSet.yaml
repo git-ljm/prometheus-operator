@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: azure-scheduledevents-exporter
+  name: azure-scheduledevents-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: azure-scheduledevents-exporter
+  template:
+    metadata:
+      labels:
+        app: azure-scheduledevents-exporter
+    spec:
+      containers:
+        - args:
+            - --scrape-time=15s
+            - --verbose
+            - --bind=:9879
+            - --api-timeout=120s
+          name: azure-scheduledevents-exporter
+          ports:
+            - containerPort: 9879
+              hostPort: 9879
+              name: http
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/azure-scheduledevents-exporter:21.01.1
+          resources:
+            limits:
+              cpu: 100m
+              memory: 300Mi
+            requests:
+              cpu: 10m
+              memory: 30Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      tolerations:
+        - operator: Exists

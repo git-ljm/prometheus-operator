@@ -1,0 +1,173 @@
+apiVersion: v1
+data:
+  .env: |
+    DESCRIPTION=测试环境
+    DINGTALK_URL=https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  services.yml: |
+    x-httpservice: &httpservice
+      type: http
+      method: GET
+      check_interval: 30
+      timeout: 5
+      expected_status: 200
+      allow_notifications: true
+      notify_after: 0
+      notify_all_changes: false
+      public: true
+      redirect: true
+
+    x-external-httpservice: &externalhttpservice
+      type: http
+      method: GET
+      check_interval: 60
+      timeout: 5
+      expected_status: 200
+      allow_notifications: true
+      notify_after: 0
+      notify_all_changes: false
+      public: true
+      redirect: true
+
+    services:
+      - name: app-external
+        domain: https://app.dmhub.cn/ping
+        <<: *externalhttpservice
+      - name: api-external
+        domain: https://api.dmhub.cn/ping
+        <<: *externalhttpservice
+      - name: cbe-external
+        domain: https://cbe.dmhub.cn/cbe/ping
+        <<: *externalhttpservice
+      - name: host-external
+        domain: https://host.dmhub.cn/ping
+        <<: *externalhttpservice
+      - name: plugin-external
+        domain: https://a.dmhub.cn/ping
+        <<: *externalhttpservice
+
+      - name: api
+        domain: http://api.test.svc.cluster.local:8015/ping
+        <<: *httpservice
+      - name: apiv2
+        domain: http://apiv2.test.svc.cluster.local:8015/ping
+        <<: *httpservice
+      - name: app
+        domain: http://app.test.svc.cluster.local:18011/ping
+        <<: *httpservice
+      - name: appui
+        domain: http://appui.test.svc.cluster.local:18012/index.html
+        <<: *httpservice
+      - name: cms
+        domain: http://cms.test.svc.cluster.local:8067/ping
+        <<: *httpservice
+      - name: collectorentry
+        domain: http://collectorentry.test.svc.cluster.local:18014/ping
+        <<: *httpservice
+      - name: cpadmin
+        domain: http://cpadmin.test.svc.cluster.local:28008/ping
+        <<: *httpservice
+      - name: cdhadaptor
+        domain: http://cdhadaptor.test.svc.cluster.local:18020/ping
+        <<: *httpservice
+      - name: customer
+        domain: http://customer.test.svc.cluster.local:18009/ping
+        <<: *httpservice
+      - name: customerbackend
+        domain: http://customerbackend.test.svc.cluster.local:18010/ping
+        <<: *httpservice
+      - name: datapermission
+        domain: http://datapermission.test.svc.cluster.local:8012/ping
+        <<: *httpservice
+      - name: etlv2
+        domain: http://etlv2.test.svc.cluster.local:8027/ping
+        <<: *httpservice
+      - name: eventjob
+        domain: http://eventjob.test.svc.cluster.local:8026/ping
+        <<: *httpservice
+      - name: extensionplatform
+        domain: http://extensionplatform.test.svc.cluster.local:28004/ping
+        <<: *httpservice
+      - name: file
+        domain: http://file.test.svc.cluster.local:8025/ping
+        <<: *httpservice
+      - name: flowmanager
+        domain: http://flowmanager.test.svc.cluster.local:8077/ping
+        <<: *httpservice
+      - name: goods
+        domain: http://goods.test.svc.cluster.local:8069/ping
+        <<: *httpservice
+      - name: hosting
+        domain: http://hosting.test.svc.cluster.local:18003/ping
+        <<: *httpservice
+      - name: job
+        domain: http://job.test.svc.cluster.local:8005/ping
+        <<: *httpservice
+      - name: kanglai
+        domain: http://kanglai.test.svc.cluster.local:8018/ping
+        <<: *httpservice
+      - name: loyaltyv2
+        domain: http://loyaltyv2.test.svc.cluster.local:8029/ping
+        <<: *httpservice
+      - name: maxwell
+        domain: http://maxwell.test.svc.cluster.local:13300/ping
+        <<: *httpservice
+      - name: plugin
+        domain: http://plugin.test.svc.cluster.local:18004/ping
+        <<: *httpservice
+      - name: queryhub
+        domain: http://queryhub.test.svc.cluster.local:8057/ping
+        <<: *httpservice
+      - name: reactflow2
+        domain: http://reactflow2.test.svc.cluster.local:8023/ping
+        <<: *httpservice
+      - name: scheduler
+        domain: http://scheduler.test.svc.cluster.local:8088/ping
+        <<: *httpservice
+      - name: sms
+        domain: http://sms.test.svc.cluster.local:8017/ping
+        <<: *httpservice
+      - name: urlshortener
+        domain: http://urlshortener.test.svc.cluster.local:8000/ping
+        <<: *httpservice
+      - name: webhook
+        domain: http://webhook.test.svc.cluster.local:8022/ping
+        <<: *httpservice
+      - name: wechat
+        domain: http://wechat.test.svc.cluster.local:18002/ping
+        <<: *httpservice
+      - name: wechatjob
+        domain: http://wechatjob.test.svc.cluster.local:18022/ping
+        <<: *httpservice
+      - name: referrer
+        domain: http://referrer.test.svc.cluster.local:28014/ping
+        <<: *httpservice
+      - name: tms
+        domain: http://tms.test.svc.cluster.local:8016/tms/ping
+        <<: *httpservice
+      - name: hadoopods
+        domain: http://hadoopods.test.svc.cluster.local:8032/ping
+        <<: *httpservice
+      - name: hadoopdts
+        domain: http://hadoopdts.test.svc.cluster.local:8037/ping
+        <<: *httpservice
+      - name: hadoopetl
+        domain: http://hadoopetl.test.svc.cluster.local:8039/ping
+        <<: *httpservice
+      - name: kafka2es
+        domain: http://kafka2es.test.svc.cluster.local:8041/ping
+        <<: *httpservice
+      - name: impala
+        domain: http://impala.test.svc.cluster.local:20060/ping
+        <<: *httpservice
+      - name: data-extractor
+        domain: http://data-extractor.test.svc.cluster.local:8192/ping
+        <<: *httpservice
+      - name: internalapi
+        domain: http://internalapi.test.svc.cluster.local:8096/ping
+        <<: *httpservice
+
+kind: ConfigMap
+metadata:
+  name: statping-config
+  namespace: monitoring
+

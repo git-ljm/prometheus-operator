@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: ingress-nginx
+  name: nginx-ingress-discovery-service
+  labels:
+    k8s-app: ingress
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  ports:
+    - name: metrics
+      port: 10254
+      protocol: TCP

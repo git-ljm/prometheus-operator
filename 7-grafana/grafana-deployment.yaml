@@ -1,0 +1,169 @@
+### comment below if you want to use temp storage ###
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage-pvc
+  namespace: monitoring
+spec:
+  # 阿里云高效云盘(最小20G)
+  # storageClassName: alicloud-disk-topology-efficiency
+  storageClassName: prometheus-local-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+### comment above if you want to use temp storage ###
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/grafana:7.2.0
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SERVER_ROOT_URL
+              value: "%(protocol)s://%(domain)s/grafana"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-storage
+              readOnly: false
+            - mountPath: /etc/grafana/provisioning/datasources
+              name: grafana-datasources
+              readOnly: false
+            - mountPath: /etc/grafana/provisioning/dashboards
+              name: grafana-dashboards
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-cluster-rsrc-use
+              name: grafana-dashboard-k8s-cluster-rsrc-use
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-node-rsrc-use
+              name: grafana-dashboard-k8s-node-rsrc-use
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-resources-cluster
+              name: grafana-dashboard-k8s-resources-cluster
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-resources-namespace
+              name: grafana-dashboard-k8s-resources-namespace
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-resources-pod
+              name: grafana-dashboard-k8s-resources-pod
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-resources-workload
+              name: grafana-dashboard-k8s-resources-workload
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/k8s-resources-workloads-namespace
+              name: grafana-dashboard-k8s-resources-workloads-namespace
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/nodes
+              name: grafana-dashboard-nodes
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/persistentvolumesusage
+              name: grafana-dashboard-persistentvolumesusage
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/pods
+              name: grafana-dashboard-pods
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/statefulset
+              name: grafana-dashboard-statefulset
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/1/kafka
+              name: grafana-dashboard-kafka
+              readOnly: false
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: grafana
+      volumes:
+        - name: grafana-storage
+          ### uncomment below if you want to use temp storage ###
+          # emptyDir: {}
+          ### uncomment above if you want to use temp storage ###
+          ### comment below if you want to use temp storage ###
+          persistentVolumeClaim:
+            claimName: grafana-storage-pvc
+          ### comment above if you want to use temp storage ###
+        - name: grafana-datasources
+          secret:
+            secretName: grafana-datasources
+        - configMap:
+            name: grafana-dashboards
+          name: grafana-dashboards
+        - configMap:
+            name: grafana-dashboard-k8s-cluster-rsrc-use
+          name: grafana-dashboard-k8s-cluster-rsrc-use
+        - configMap:
+            name: grafana-dashboard-k8s-node-rsrc-use
+          name: grafana-dashboard-k8s-node-rsrc-use
+        - configMap:
+            name: grafana-dashboard-k8s-resources-cluster
+          name: grafana-dashboard-k8s-resources-cluster
+        - configMap:
+            name: grafana-dashboard-k8s-resources-namespace
+          name: grafana-dashboard-k8s-resources-namespace
+        - configMap:
+            name: grafana-dashboard-k8s-resources-pod
+          name: grafana-dashboard-k8s-resources-pod
+        - configMap:
+            name: grafana-dashboard-k8s-resources-workload
+          name: grafana-dashboard-k8s-resources-workload
+        - configMap:
+            name: grafana-dashboard-k8s-resources-workloads-namespace
+          name: grafana-dashboard-k8s-resources-workloads-namespace
+        - configMap:
+            name: grafana-dashboard-nodes
+          name: grafana-dashboard-nodes
+        - configMap:
+            name: grafana-dashboard-persistentvolumesusage
+          name: grafana-dashboard-persistentvolumesusage
+        - configMap:
+            name: grafana-dashboard-pods
+          name: grafana-dashboard-pods
+        - configMap:
+            name: grafana-dashboard-statefulset
+          name: grafana-dashboard-statefulset
+        - configMap:
+            name: grafana-dashboard-kafka
+          name: grafana-dashboard-kafka
+        - configMap:
+            name: grafana-dashboard-yarn
+          name: grafana-dashboard-yarn
+        - configMap:
+            name: grafana-dashboard-maxwell
+          name: grafana-dashboard-maxwell
+        - configMap:
+            name: grafana-dashboard-jvm
+          name: grafana-dashboard-jvm

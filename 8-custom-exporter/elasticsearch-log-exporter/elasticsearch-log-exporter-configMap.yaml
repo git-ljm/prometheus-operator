@@ -1,0 +1,96 @@
+apiVersion: v1
+data:
+  log.cfg: |
+    [DEFAULT]
+    QueryIntervalSecs = 15
+    QueryTimeoutSecs = 10
+    QueryIndices = _all
+    QueryOnError = drop
+    QueryOnMissing = drop
+
+    [query_log_nginx]
+    QueryIntervalSecs = 300
+    QueryTimeoutSecs = 30
+    QueryIndices = <log-nginx-{now/d}>
+    QueryOnError = drop
+    QueryOnMissing = drop
+    QueryJson = {
+          "size": 0,
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "now-5m",
+                "lte": "now",
+                "format": "strict_date_optional_time"
+              }
+            }
+          },
+          "aggs": {
+            "host": {
+              "terms": {
+                "field": "http_host.keyword",
+                "size": 50
+              },
+              "aggs": {
+                "status": {
+                  "terms": {
+                    "field": "status.keyword",
+                    "size": 50
+                  }
+                }
+              }
+            }
+          },
+          "timeout": "30000ms"
+        }
+
+    [query_log]
+    QueryIntervalSecs = 300
+    QueryTimeoutSecs = 30
+    QueryIndices = <log-test-{now/d}>
+    QueryOnError = drop
+    QueryOnMissing = drop
+    QueryJson = {
+          "size": 0,
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "now-5m",
+                "lte": "now",
+                "format": "strict_date_optional_time"
+              }
+            }
+          },
+          "aggs": {
+            "application": {
+              "terms": {
+                "field": "service",
+                "size": 100
+              },
+              "aggs": {
+                "error": {
+                  "filter": {
+                    "term": {
+                      "level": "ERROR"
+                    }
+                  }
+                },
+                "error_percentage": {
+                  "bucket_script": {
+                    "buckets_path": {
+                      "numerator": "error>_count",
+                      "denominator": "_count"
+                    },
+                    "script": "params.numerator != null && params.denominator != null && params.denominator > 0 ? params.numerator / params.denominator : 0"
+                  }
+                }
+              }
+            }
+          },
+          "timeout": "30000ms"
+        }
+
+kind: ConfigMap
+metadata:
+  name: elasticsearch-log-exporter-config
+  namespace: monitoring

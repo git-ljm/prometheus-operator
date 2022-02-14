@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: yarn-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: yarn.alerts
+    rules:
+    - alert: yarnApplicationLongRunning
+      expr: |
+        yarn_app_elapsed_time_milliseconds > 3 * 60 * 60000
+      labels:
+        severity: warning
+      annotations:
+        summary: "yarn任务运行时间已超过3小时，请注意"
+        description: Name={{ $labels.name }}，ID={{ $labels.id }}
+    - alert: yarnClusterAllocatedVirtualCores
+      expr: |
+        sum(yarn_virtual_cores{status="allocated"}) > sum(yarn_virtual_cores_total) * 0.85
+      for: 3h
+      labels:
+        severity: warning
+      annotations:
+        summary: "yarn总分配CPU核数超过85%，已持续超过3小时，请注意"
+        description: "virtual_cores={{ $value }}"
+    - alert: yarnClusterAllocatedMemory
+      expr: |
+        sum(yarn_memory_megabytes{status="allocated"}) > sum(yarn_memory_total_megabytes) * 0.85
+      for: 3h
+      labels:
+        severity: warning
+      annotations:
+        summary: "yarn总分配内存超过85%，已持续超过3小时，请注意"
+        description: "memory={{ $value }}MB"
+    - alert: yarnApplicationPending
+      expr: |
+        yarn_apps{status="pending"} > 0
+      for: 3h
+      labels:
+        severity: warning
+      annotations:
+        summary: "yarn存在pending任务，已持续超过3小时，请注意"
+        description: "pending_apps={{ $value }}"

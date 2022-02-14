@@ -1,0 +1,26 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    prometheus-exporter: jmx-exporter
+  name: jmx-exporter
+  namespace: monitoring
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    #port: "7777"
+    scheme: http
+    relabelings:
+    - sourceLabels: [__address__, __meta_kubernetes_service_label_jmx_scrape_port]
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      targetLabel: __address__
+    - sourceLabels: [job]
+      replacement: 'jmx-exporter'
+      targetLabel: job
+  selector:
+    matchLabels:
+      jmx_should_be_scraped: "true"
+  namespaceSelector:
+    any: true

@@ -1,0 +1,57 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: kudu-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: kudu.alerts
+    rules:
+    - alert: KuduMetricsDOWN
+      expr: kudu_up == 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "未能抓取kudu节点监控数据，已超过5分钟，请留意"
+        description: "节点={{ $labels.server }}，角色={{ $labels.role }}"
+    - alert: KuduClusterReplicaSkew
+      expr: kudu_cluster_replica_skew > 100
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kudu节点间Replica数不均衡，偏差大于100，已超过5分钟，请留意"
+        description: "偏斜量={{ $value }}"
+    - alert: KuduTabletFailed
+      expr: kudu_tablets_num_failed > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kudu节点上有Tablet失败，请留意"
+        description: "节点={{ $labels.server }}，角色={{ $labels.role }}，失败Tablet数={{ $value }}"
+    - alert: KuduDataDirsFailed
+      expr: kudu_data_dirs_failed > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kudu节点上数据目录所在磁盘损坏，请留意"
+        description: "节点={{ $labels.server }}，角色={{ $labels.role }}，损坏目录数={{ $value }}"
+    - alert: KuduDataDirsFull
+      expr: kudu_data_dirs_full > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kudu节点上数据目录所在磁盘已满，请留意"
+        description: "节点={{ $labels.server }}，角色={{ $labels.role }}，已满目录数={{ $value }}"
+    - alert: KuduLogError
+      expr: kudu_glog_error_messages > 0 and changes(kudu_glog_error_messages[5m]) > 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Kudu节点日志持续报错，已超过10分钟，请留意"
+        description: "节点={{ $labels.server }}，角色={{ $labels.role }}，当前累计错误日志数={{ $value }}"

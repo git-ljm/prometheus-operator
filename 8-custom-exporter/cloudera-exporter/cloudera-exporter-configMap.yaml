@@ -1,0 +1,31 @@
+apiVersion: v1
+data:
+  config.ini: |
+    [target]
+    host                           = scm-server-ip-here
+    port                           = 7180
+
+    [user]
+    # User name (Only read permision is required)
+    username                       = admin
+    password                       = admin
+
+    [modules]
+    global_status_module           = true
+    host_module                    = false
+    hdfs_module                    = false
+    impala_module                  = false
+    # Yarn metrics module (Still doesn't work)
+    yarn_module                    = false
+
+    [system]
+    num_procs                      = 8
+    deploy_ip                      = 127.0.0.1
+    deploy_port                    = 9200
+    log_level                      = 1
+
+kind: ConfigMap
+metadata:
+  name: cloudera-exporter-config
+  namespace: monitoring
+

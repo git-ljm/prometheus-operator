@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: kafka-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: kafka.alerts
+    rules:
+    - alert: KafkaSlowConsuming
+      expr: |
+        sum by (consumergroup, topic, kafka_cluster_name) (kafka_consumergroup_lag_sum > 0) / sum by (consumergroup, topic, kafka_cluster_name) (rate(kafka_consumergroup_current_offset_sum[5m])) / 60 > 30
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "kafka topic消费慢"
+        description: consumergroup={{ $labels.consumergroup }} topic={{ $labels.topic }} ETA={{ printf "%.2f" $value }}minutes
+    - alert: KafkaSlowConsuming-critical2
+      expr: |
+        sum by (consumergroup, topic, kafka_cluster_name) (kafka_consumergroup_lag_sum > 0) / sum by (consumergroup, topic, kafka_cluster_name) (rate(kafka_consumergroup_current_offset_sum[5m])) / 60 > 30
+      for: 15m
+      labels:
+        severity: critical
+      annotations:
+        summary: "kafka topic消费慢"
+        description: consumergroup={{ $labels.consumergroup }} topic={{ $labels.topic }} ETA={{ printf "%.2f" $value }}minutes
+    - alert: KafkaSlowConsuming-critical
+      expr: |
+          sum by (consumergroup, topic, kafka_cluster_name) (kafka_consumergroup_lag_sum{consumergroup=~"wechat_qrcode_actions_group|etlv2-collectorsession-events-group|wechat-asyn-callback-message-group",topic=~"wechat_qrcode_actions|customer_event_from_collectorsession|wechat-asyn-callback-message"} > 0) / sum by (consumergroup, topic, kafka_cluster_name) (rate(kafka_consumergroup_current_offset_sum{consumergroup=~"wechat_qrcode_actions_group|etlv2-collectorsession-events-group|wechat-asyn-callback-message-group",topic=~"wechat_qrcode_actions|customer_event_from_collectorsession|wechat-asyn-callback-message"}[5m])) / 60 > 3
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "kafka topic消费慢"
+        description: consumergroup={{ $labels.consumergroup }} topic={{ $labels.topic }} ETA={{ printf "%.2f" $value }}minutes
+    - alert: kafka-brokers
+      expr: kafka-brokers < 3
+      for: 30s
+      labels:
+        severity: critical
+      annotations:
+        summary: "kafka节点小于3台"
+        description: "当前kafka节点数={{ $value }}"

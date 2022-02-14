@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rabbitmq-exporter
+  name: rabbitmq-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-exporter
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-exporter
+    spec:
+      containers:
+        - env:
+            - name: RABBIT_URL
+              value: http://192.168.11.150:15672
+            - name: RABBIT_USER
+              value: user
+            - name: RABBIT_PASSWORD
+              value: pass
+            - name: RABBIT_CAPABILITIES
+              value: nobert
+            - name: PUBLISH_ADDR
+              value: 127.0.0.1
+            - name: PUBLISH_PORT
+              value: "9419"
+          name: rabbitmq-exporter
+          image: kbudde/rabbitmq-exporter:latest
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+        - args:
+            - --logtostderr
+            - --secure-listen-address=$(IP):9419
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            - --upstream=http://127.0.0.1:9419/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          # image: quay.io/coreos/kube-rbac-proxy:v0.4.1
+          image: gaven/kube-rbac-proxy:v0.4.1
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 9419
+              hostPort: 9419
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: rabbitmq-exporter
+      tolerations:
+        - operator: Exists

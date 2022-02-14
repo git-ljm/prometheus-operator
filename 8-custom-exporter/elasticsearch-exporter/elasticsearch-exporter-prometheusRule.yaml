@@ -1,0 +1,67 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: elasticsearch-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: elasticsearch.alerts
+    rules:
+    - alert: ElasticsearchJvmheapPercent-5m
+      expr: |
+        ceil(elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"} * 100) > 85
+      for: 5m
+      labels:
+        severity: low
+      annotations:
+        summary: "elasticsearch jvm_heap使用率持续5m超出85%"
+        description: "elasticsearch服务器={{ $labels.host }} jvm_heap={{ $value }}%"
+    - alert: ElasticsearchJvmheapPercent-30m
+      expr: |
+        ceil(elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"} * 100) > 85
+      for: 30m
+      labels:
+        severity: warning
+      annotations:
+        summary: "elasticsearch jvm_heap使用率持续30m超出85%"
+        description: "elasticsearch服务器={{ $labels.host }} jvm_heap={{ $value }}%"
+    - alert: ElasticsearchFilesystemUsage
+      expr: |
+        ceil(100 - elasticsearch_filesystem_data_free_bytes / elasticsearch_filesystem_data_size_bytes * 100) > 85
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "elasticsearch磁盘使用率持续5m超出85%"
+        description: "elasticsearch服务器={{ $labels.host }} 磁盘={{ $labels.mount }} 磁盘使用率={{ $value }}%"
+    - alert: ElasticsearchStatus-red
+      expr: |
+        elasticsearch_cluster_health_status{color="red"} == 1
+      for: 10s
+      labels:
+        severity: critical
+      annotations:
+        summary: "elasticsearch集群不可用"
+        description: "elasticsearch集群当前健康状态={{ $labels.color }}"
+    - alert: ElasticsearchStatusyellow
+      expr: |
+        elasticsearch_cluster_health_status{color="yellow"} == 1
+      for: 10s
+      labels:
+        severity: warning
+      annotations:
+        summary: "elasticsearch集群状态不良"
+        description: "elasticsearch集群当前健康状态={{ $labels.color }}"
+    - alert: ElasticsearchNodesDown
+      expr: |
+        count_over_time(elasticsearch_os_mem_used_bytes[2m]) unless elasticsearch_os_mem_used_bytes
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "elasticsearch节点故障"
+        description: "服务器IP={{ $labels.host }} 集群名={{ $labels.cluster }} down"
+    

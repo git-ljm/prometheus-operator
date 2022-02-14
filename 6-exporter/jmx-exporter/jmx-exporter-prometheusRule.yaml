@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: jmx-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: jmx.alerts
+    rules:
+    - alert: TooMuchOldGenerationGCTime
+      expr: ceil(increase(jvm_gc_collection_seconds_sum{gc=~"(PS MarkSweep|G1 Old Generation)"}[5m])) > 20
+      labels:
+        severity: critical
+      annotations:
+        summary: "FullGC耗时过长，5分钟内GC时间超过20s"
+        description: "服务={{ $labels.service }}\t容器={{ $labels.pod }}\t5分钟内GC时间={{ printf \"%.2f\" $value }}s\n"

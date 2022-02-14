@@ -1,0 +1,53 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: redis-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: redis.alerts
+    rules:
+    - alert: redis-memory-usage1m
+      expr: |
+        ceil(redis_memory_used_bytes / redis_memory_max_bytes * 100)>85
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "redis内存使用率持续1m超出85%"
+        description: "redis内存使用率={{ $value }}%"
+    - alert: redis-up
+      expr: |
+        redis_up != 1 OR absent(redis_up) == 1
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "redis不可用或采集器不可用"
+    - alert: TooManyConnections
+      expr: ceil(redis_connected_clients / redis_config_maxclients * 100) > 80
+      for: 5m
+      labels:
+        severity: low
+      annotations:
+        summary: "redis连接数使用率持续5m超出80%"
+        description: "Redis连接数使用率={{ $value }}\n"
+    - alert: RejectedConnections
+      expr: increase(redis_rejected_connections_total[1m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Redis持续5m有被拒绝连接数"
+        description: "Redis 1分钟新增被拒绝连接数={{ $value }}\n"
+    - alert: RedisCpuTooHigh
+      expr: (irate(redis_cpu_sys_seconds_total[2m]) + irate(redis_cpu_user_seconds_total[2m])) * 100 > 80
+      for: 5m
+      labels:
+        severity: low
+      annotations:
+        summary: "Redis CPU使用率持续5m超出80%"
+        description: "Redis CPU使用率={{ $value }}%\n"

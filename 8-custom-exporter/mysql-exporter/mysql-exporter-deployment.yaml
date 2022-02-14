@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mysql-exporter
+  name: mysql-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-exporter
+  template:
+    metadata:
+      labels:
+        app: mysql-exporter
+    spec:
+      containers:
+        - env:
+            - name: DATA_SOURCE_NAME
+              # It's better to use an individual account with a max connection limit for monitoring.
+              # CREATE USER 'exporter'@'%' IDENTIFIED BY 'password' WITH MAX_USER_CONNECTIONS 3;
+              # GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+              value: "root:11111@(rm-uf6r86b2q6802883q.mysql.rds.aliyuncs.com)/"
+          args:
+            # More optional collector flags could be found on https://github.com/prometheus/mysqld_exporter#collector-flags
+            - --collect.info_schema.tables
+            - --collect.info_schema.processlist
+            - --collect.binlog_size
+            - --web.listen-address=127.0.0.1:9104
+          name: mysql-exporter
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/mysqld-exporter
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 500m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+        - args:
+            - --logtostderr
+            - --secure-listen-address=$(IP):9104
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            - --upstream=http://127.0.0.1:9104/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          imagePullPolicy: IfNotPresent
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/kube-rbac-proxy:v0.4.1
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 9104
+              hostPort: 9104
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: mysql-exporter
+      tolerations:
+        - operator: Exists

@@ -1,0 +1,14 @@
+kind: Endpoints
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: azure-scheduledevents-exporter
+  name: external-azure-scheduledevents-exporter
+  namespace: monitoring
+subsets:
+ - addresses:
+     - ip: 127.0.0.1
+     - ip: 127.0.1.1
+   ports:
+     - port: 9879
+       name: http

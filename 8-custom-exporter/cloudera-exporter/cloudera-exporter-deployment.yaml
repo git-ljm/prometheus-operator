@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cloudera-exporter
+  name: cloudera-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudera-exporter
+  template:
+    metadata:
+      labels:
+        app: cloudera-exporter
+    spec:
+      containers:
+        - name: cloudera-exporter
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/cloudera_exporter:v0.0.1
+          resources:
+            limits:
+              cpu: 100m
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 50Mi
+          volumeMounts:
+          - name: config-volume
+            mountPath: /config.ini
+            subPath: config.ini
+        - args:
+            - --logtostderr
+            - --secure-listen-address=$(IP):9200
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            - --upstream=http://127.0.0.1:9200/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/kube-rbac-proxy:v0.4.1
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 9200
+              hostPort: 9200
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      volumes:
+      - name: config-volume
+        configMap:
+          name: cloudera-exporter-config
+          items:
+          - key: config.ini
+            path: config.ini
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: cloudera-exporter
+      tolerations:
+        - operator: Exists

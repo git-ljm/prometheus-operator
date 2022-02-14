@@ -1,0 +1,26 @@
+apiVersion: v1
+data:
+  default.tmpl: |+
+    {{ define "__subject" }}[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join " " }} {{ if gt (len .CommonLabels) (len .GroupLabels) }}({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join " " }}{{ end }}){{ end }}{{ end }}
+    {{ define "__alertmanagerURL" }}{{ .ExternalURL }}/#/alerts?receiver={{ .Receiver }}{{ end }}
+
+    {{ define "__text_alert_list" }}{{ range . }}
+    ---
+    {{ range .Labels.SortedPairs }}{{ if (eq .Name "instance" "pod") }}> {{ .Name | title }}: {{ .Value | markdown | html }}{{ end }}
+    {{ end }}
+    {{ range .Annotations.SortedPairs }}> {{ .Name | title }}: {{ .Value | markdown | html }}
+    {{ end }}
+    > Time: {{ dateInZone "2006.01.02 15:04:05" (.StartsAt) "Asia/Shanghai" }}
+
+    {{ end }}{{ end }}
+
+    {{ define "ding.link.title" }}{{ template "__subject" . }}{{ end }}
+    {{ define "ding.link.content" }}#### \[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}⚠️{{ end }}{{ if eq .Status "resolved" }}✅{{ end }}\] **[{{ index .GroupLabels "alertname" }}]({{ template "__alertmanagerURL" . }})**
+    {{ template "__text_alert_list" .Alerts.Firing }}
+    {{ template "__text_alert_list" .Alerts.Resolved }}
+    {{ end }}
+
+kind: ConfigMap
+metadata:
+  name: prometheus-webhook-dingtalk-template
+  namespace: monitoring

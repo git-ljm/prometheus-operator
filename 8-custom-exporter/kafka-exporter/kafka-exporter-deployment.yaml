@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kafka-exporter
+  name: kafka-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-exporter
+  template:
+    metadata:
+      labels:
+        app: kafka-exporter
+    spec:
+      containers:
+        - args:
+            - --kafka.server=broker1:9092
+            - --kafka.server=broker2:9092
+            - --kafka.server=broker3:9092
+            - --kafka.version=1.0.0
+            - --web.listen-address=127.0.0.1:9308
+            # 如果需要排除topic或group，修改内容并取消下两行注释
+            # - --filter.exclude
+            # - --topic.filter="(add_list_member).*"
+          name: kafka-exporter
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/kafka_exporter:v0.0.2
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 2
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+        - args:
+            - --logtostderr
+            - --secure-listen-address=$(IP):9308
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            - --upstream=http://127.0.0.1:9308/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/kube-rbac-proxy:v0.4.1
+          imagePullPolicy: IfNotPresent
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 9308
+              hostPort: 9308
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      serviceAccountName: kafka-exporter
+      tolerations:
+        - operator: Exists

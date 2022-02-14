@@ -1,0 +1,61 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: maxwell-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: maxwell.alerts
+    rules:
+    - alert: maxwellUp
+      expr: |
+        absent(MaxwellMetrics_messages_succeeded)
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "prometheus未能成功抓取maxwell指标超过10分钟，请留意"
+    - alert: maxwellReplicationQueueTime
+      expr: |
+        MaxwellMetrics_replication_queue_time{quantile="0.99"} > 1 * 1000
+      labels:
+        severity: warning
+      annotations:
+        summary: "maxwell binlog等待处理时间P99超过1秒，请留意"
+        description: "the time it took to enqueue a given binlog event for processing, in milliseconds"
+    - alert: maxwellReplicationLagNegative
+      expr: |
+        MaxwellMetrics_replication_lag < 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "maxwell binlog同步延迟报告为负数，持续超过5分钟，可能同步有中断需要重启，请注意"
+        description: "the time elapsed between the database transaction commit and the time it was processed by Maxwell, in milliseconds"
+    - alert: maxwellReplicationLag
+      expr: |
+        MaxwellMetrics_replication_lag > 5 * 1000
+      labels:
+        severity: warning
+      annotations:
+        summary: "maxwell binlog同步延迟超过5秒，可能有大事务正在执行，请留意"
+        description: "the time elapsed between the database transaction commit and the time it was processed by Maxwell, in milliseconds"
+    - alert: maxwellFailedMessage
+      expr: |
+        round(delta(MaxwellMetrics_messages_failed[5m])) > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "maxwell 5分钟内有{{ $value }}条消息发送到kafka失败，后续请留意"
+        description: "count of messages that failed to send to Kafka"
+    - alert: maxwellMessagePublishAge
+      expr: |
+        MaxwellMetrics_message_publish_age{quantile="0.99"} > 3 * 1000
+      labels:
+        severity: warning
+      annotations:
+        summary: "maxwell消息同步P99延迟超过3秒，请留意"
+        description: "the time between an event occurring on the DB and being published to kafka, in milliseconds. Note: since MySQL timestamps are accurate to the second, this is only accurate to +/- 500ms."

@@ -1,0 +1,11 @@
+*.iml
+*.zip
+*.tgz
+*.tar.gz
+.DS_Store
+.idea/
+build/
+.gradle/
+out/
+bin/
+.settings

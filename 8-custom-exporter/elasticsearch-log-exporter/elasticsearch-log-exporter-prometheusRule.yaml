@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: elasticsearch-log-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: elasticsearch.log.application.alerts
+    rules:
+    - alert: ElasticsearchLogApplicationKeepingError
+      expr: |
+        log_application_error_percentage_value * 100 > 0
+      for: 1h
+      labels:
+        severity: warning
+      annotations:
+        summary: "ES中服务日志持续有报错，超过1小时，请留意"
+        description: 服务名={{ $labels.application }}，最近5分钟错误率={{ printf "%.2f" $value }}%
+  - name: elasticsearch.log.nginx.alerts
+    rules:
+    - alert: ElasticsearchLogNginxErrorPercentage
+      expr: |
+          log_nginx_host_status_doc_count{status=~"(400|499|502|503|504)"} / ignoring(status) group_left  log_nginx_host_doc_count * 100 > 1
+      labels:
+        severity: warning
+      annotations:
+        summary: "最近5分钟nginx异常状态码超过1%"
+        description: 域名={{ $labels.host }}，状态码={{ $labels.status }}，最近5分钟错误率={{ printf "%.2f" $value }}%，最近5分钟错误数={{ printf "log_nginx_host_status_doc_count{host='%s',status='%s'}" .Labels.host .Labels.status | query | first | value }}
+    - alert: ElasticsearchLogNginxErrorCount
+      expr: |
+          log_nginx_host_status_doc_count{status=~"(400|499|502|503|504)"} > 50
+      labels:
+        severity: warning
+      annotations:
+        summary: "最近5分钟nginx异常状态码超过50条"
+        description: 域名={{ $labels.host }}，状态码={{ $labels.status }}，最近5分钟错误数={{ $value }}

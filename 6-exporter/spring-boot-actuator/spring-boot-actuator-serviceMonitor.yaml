@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    prometheus-exporter: spring-boot-actuator
+  name: spring-boot-actuator
+  namespace: monitoring
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    #port: "9999"
+    path: /actuator/prometheus
+    scheme: http
+    relabelings:
+    - sourceLabels: [__address__, __meta_kubernetes_service_label_actuator_scrape_port]
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      targetLabel: __address__
+    - sourceLabels: [job]
+      replacement: 'spring-boot-actuator'
+      targetLabel: job
+  selector:
+    matchLabels:
+      actuator_should_be_scraped: "true"
+  namespaceSelector:
+    any: true

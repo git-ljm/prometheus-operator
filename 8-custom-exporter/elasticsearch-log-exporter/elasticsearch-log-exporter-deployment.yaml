@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: elasticsearch-log-exporter
+  name: elasticsearch-log-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch-log-exporter
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-log-exporter
+    spec:
+      containers:
+        - args:
+            - --es-cluster=es01,es02,es03
+            - --cluster-health-disable
+            - --nodes-stats-disable
+            - --indices-aliases-disable
+            - --indices-mappings-disable
+            - --indices-stats-disable
+            - --config-dir=/config
+            - --verbose
+          name: elasticsearch-log-exporter
+          ports:
+            - containerPort: 9206
+              hostPort: 9206
+              name: http
+          image: registry.cn-hangzhou.aliyuncs.com/clab-docker/prometheus-es-exporter:0.14.0
+          resources:
+            limits:
+              cpu: 100m
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 50Mi
+          volumeMounts:
+          - name: config-volume
+            mountPath: /config
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      volumes:
+      - name: config-volume
+        configMap:
+          name: elasticsearch-log-exporter-config
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      tolerations:
+        - operator: Exists

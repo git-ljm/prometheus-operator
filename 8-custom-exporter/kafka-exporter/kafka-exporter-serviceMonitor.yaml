@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    k8s-app: kafka-exporter
+  name: kafka-exporter
+  namespace: monitoring
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      interval: 30s
+      scrapeTimeout: 20s
+      port: https
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+  jobLabel: k8s-app
+  targetLabels:
+    - kafka-cluster-name
+  selector:
+    matchLabels:
+      k8s-app: kafka-exporter

@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: azure-scheduledevents-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: azure.scheduledevents.alerts
+    rules:
+    - alert: AzureScheduledEventsNotification
+      expr: |
+        azure_scheduledevent_event{eventStatus="Scheduled"} > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "收到Azure通知，已安排时间进行维护操作，请留意"
+        description: 事件类型={{ $labels.eventType }}，资源类型={{ $labels.resourceType }}，资源名称={{ $labels.resource }}，预计时间（不早于）={{ $labels.notBefore }}，事件ID={{ $labels.eventID }}，事件来源={{ $labels.eventSource }}
+    - alert: AzureStartedEventsNotification
+      expr: |
+        azure_scheduledevent_event{eventStatus="Started"} > 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "收到Azure通知，维护操作已开始，请留意"
+        description: 事件类型={{ $labels.eventType }}，资源类型={{ $labels.resourceType }}，资源名称={{ $labels.resource }}，事件ID={{ $labels.eventID }}，事件来源={{ $labels.eventSource }}

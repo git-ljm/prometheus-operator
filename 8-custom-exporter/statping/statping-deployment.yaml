@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: statping
+  name: statping
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statping
+  template:
+    metadata:
+      labels:
+        app: statping
+    spec:
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/clab-docker/statping:v0.0.5
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            tcpSocket:
+              port: http
+            timeoutSeconds: 3
+          name: statping
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /status/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          volumeMounts:
+          - name: config-volume
+            mountPath: /app/.env
+            subPath: .env
+          - name: config-volume
+            mountPath: /app/services.yml
+            subPath: services.yml
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      volumes:
+      - name: config-volume
+        configMap:
+          name: statping-config
+          items:
+          - key: .env
+            path: .env
+          - key: services.yml
+            path: services.yml
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
+      tolerations:
+        - operator: Exists

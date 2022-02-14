@@ -1,0 +1,40 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    k8s-app: ingress
+  name: nginx-ingress-controller
+  namespace: monitoring
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      interval: 10s
+      port: metrics
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          regex: "true"
+          action: keep
+        - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+          regex: (https?)
+          action: replace
+          targetLabel: __scheme__
+        - sourceLabels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          regex: (.+)
+          action: replace
+          targetLabel: __metrics_path__
+        - sourceLabels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          action: replace
+          replacement: $1:$2
+          targetLabel: __address__
+        - sourceLabels: [__meta_kubernetes_service_name]
+          regex: prometheus-server
+          action: drop
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+      - ingress-nginx
+  selector:
+    matchLabels:
+      k8s-app: ingress

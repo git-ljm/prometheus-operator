@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: cloudera-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: cloudera.alerts
+    rules:
+    - alert: ClouderaExporterNotHealthy
+      expr: |
+        kbdi_exporter_up != 1 or absent(kbdi_exporter_up)
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "cloudera-exporter未能正常抓取监控数据，请留意"
+    - alert: ClouderaClusterNotHealthy
+      expr: |
+        kbdi_status_cluster_up{maintenance_mode="false"} != 5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CDH集群非健康，请注意"
+        description: 集群名={{ $labels.cluster_name }}，集群状态={{ $labels.cluster_state }}
+    - alert: ClouderaHostNotHealthy
+      expr: |
+        kbdi_status_host_up{maintenance_mode="false"} != 5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CDH节点非健康，请注意"
+        description: 节点名={{ $labels.hostname }}，健康状态={{ $labels.health_summary }}
+    - alert: ClouderaServiceNotHealthy
+      expr: |
+        kbdi_status_service_up !=5 and kbdi_status_service_up !=3
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CDH服务非健康，请注意"
+        description: 服务名={{ $labels.service_name }}，服务状态={{ $labels.health_summary }}
+    - alert: ClouderaRoleNotHealthy
+      expr: |
+        kbdi_status_role_up !=5 and kbdi_status_role_up !=3
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CDH角色非健康，请注意"
+        description: 角色名={{ $labels.exported_service }}-{{ $labels.role_type }}，所在节点={{ $labels.host_name }}，服务状态={{ $labels.health_summary }}

@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: mongodb-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: mongodb.alerts
+    rules:
+    - alert: mongodb-members-health
+      expr: |
+        mongodb_mongod_replset_member_health !=1
+      for: 30s
+      labels:
+        severity: critical
+      annotations:
+        summary: "mongodb异常"
+        description: "异常mongodb服务器 name={{ $labels.name }} state={{ $labels.state }}\n"
+    - alert: MongodbTooManyConnections
+      expr: mongodb_connections{state="current"} > 500
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "MongoDB连接数持续5m超出500"
+        description: "MongoDB当前连接数={{ $value }}\n"
